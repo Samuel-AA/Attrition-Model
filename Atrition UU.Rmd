@@ -1,0 +1,873 @@
+---
+title: "Attrition UU"
+author: "Samuel"
+date: "July 2023"
+output:
+  html_document: default
+  word_document: default
+  pdf_document: default
+---
+
+##Introduction
+introdu
+
+
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)  #The `echo = FALSE` parameter was added to the code chunk to PREVENT  printing of the R code that generated the plot.
+
+knitr::opts_chunk$set(error = TRUE) #The `error = TRUE` parameter was added to the code chunk to PREVENT the R code to stop on error when running the code chunks.
+
+```
+# load required libraries / additional files
+```{r Library,message=FALSE, echo=FALSE }
+
+if(!require(openxlsx)){
+  install.packages("openxlsx", repos = "https://www.stats.bris.ac.uk/R/")
+  library(openxlsx)}
+
+
+if(!require(readxl)){
+  install.packages("readxl", repos = "https://www.stats.bris.ac.uk/R/")
+  library(readxl)}
+
+if(!require(corrplot)){
+  install.packages("corrplot", repos = "https://www.stats.bris.ac.uk/R/")
+  library(corrplot)}
+
+if(!require(dplyr)){
+  install.packages("dplyr", repos = "https://www.stats.bris.ac.uk/R/")
+  library(dplyr)}
+
+
+if(!require(ggplot2)){
+  install.packages("ggplot2", repos = "https://www.stats.bris.ac.uk/R/")
+  library(ggplot2)}
+
+if(!require(knitr)){
+  install.packages("knitr",repos = "https://www.stats.bris.ac.uk/R/")
+  library(knitr)}
+
+if(!require(class)){
+  install.packages("class",repos = "https://www.stats.bris.ac.uk/R/")
+  library(class)}
+
+
+if(!require(lme4)){
+  install.packages("lme4", repos = "https://www.stats.bris.ac.uk/R/")
+  library(lme4)}
+
+if(!require(MASS)){
+  install.packages("MASS", repos = "https://www.stats.bris.ac.uk/R/")
+  library(MASS)}
+
+if(!require(tidyverse)){
+  install.packages("tidyverse", repos = "https://www.stats.bris.ac.uk/R/")
+  library(tidyverse)}
+
+
+
+if(!require(assertr)){
+  install.packages("assertr", repos = "https://www.stats.bris.ac.uk/R/")
+  library(assertr)}
+
+if(!require(ggpubr)){
+  install.packages("ggpubr", repos = "https://www.stats.bris.ac.uk/R/")
+  library(ggpubr)}
+
+if(!require(lubridate)){
+  install.packages("lubridate", repos = "https://www.stats.bris.ac.uk/R/")
+  library(lubridate)}
+
+if(!require(flextable)){
+  install.packages("flextable", repos = "https://www.stats.bris.ac.uk/R/")
+  library(flextable)}
+
+if(!require(patchwork)){
+    install.packages("patchwork", repos = "https://www.stats.bris.ac.uk/R/")
+    library(patchwork)}
+
+
+if(!require(randomForest)){
+    install.packages("randomForest", repos = "https://www.stats.bris.ac.uk/R/")
+    library(randomForest)}
+
+
+if(!require(caret)){
+    install.packages("caret", repos = "https://www.stats.bris.ac.uk/R/")
+    library(caret)}
+
+
+if(!require(pROC)){
+    install.packages("pROC", repos = "https://www.stats.bris.ac.uk/R/")
+    library(pROC)}
+
+```
+
+
+
+```{R}
+#Set Working Directory
+
+#setwd("Y:/15. Alteryx/Workflows/A.sam/R/Atrition")
+
+```
+
+
+```{r da}
+# load dataset
+
+#ML<- read_excel("Y:/15. Alteryx/Workflows/A.sam/R/Master Leavers.xlsx",sheet = "Leavers")
+
+#str(ML)
+
+#View(ML)
+
+```
+
+
+```{r}
+
+#ML$Month<- as.Date(ML$Month, "%m/%Y")
+
+#ML$Month <- as_datetime(ML$Month)
+
+#ML$Month <- ymd(ML$Month)
+
+#ML$Month <- strftime(ML$Month,format="%Y,%b")
+
+```
+
+
+```{r}
+
+#L<- ML %>% separate(Month, c("Y","M","D"),"-")
+
+#ML<-cbind(L$Y,L$M,ML)
+
+#colnames(ML)[1]<- "Year"
+
+#colnames(ML)[2]<- "Month_Year"
+
+#View(ML)
+
+```
+
+
+***My Original Testing data***
+
+```{r data, echo=FALSE}
+# load dataset
+
+library(readxl)
+
+test<- read_excel("Y:/15. Alteryx/Workflows/A.sam/R/Atrition/test.xlsx")
+
+#testdata= subset(test, select = -c(`Pers.no.`,`Name`))
+
+testdata <- mutate_if(test, is.character, as.factor)
+
+View(testdata)
+
+sum(is.na(testdata))
+
+#testdata<-na.omit(testdata)
+
+dim(testdata)
+```
+
+
+***START***
+
+```{r data, echo=FALSE}
+# load dataset
+
+library(readxl)
+
+AT<- read_excel("Y:/15. Alteryx/Workflows/A.sam/R/Atrition/Master Leavers_.xlsx")
+
+AT= subset(AT, select = -c(`Month`,`Leaving`))
+
+View(AT)
+dim(AT)
+```
+
+
+```{r}
+head(AT,20)
+```
+
+**Data Check**
+
+There are sum(is.na(AT))
+
+```{r}
+#Check if there exist missing values
+
+sum(is.na(AT))
+
+```
+
+**EXPLORATORY DATA ANALYSIS** 
+
+```{r EDA}
+#total number of rows and columns 
+
+dim(AT)
+
+#str(AT)
+
+```
+
+**Groupbys'**
+
+```{r}
+
+by_Gender<-AT %>% group_by(Gender)
+
+
+Attrition_by_day<-by_Gender %>% summarise(total_Att=sum(`Atrition`))
+
+flextable(Attrition_by_day)
+
+```
+
+
+**Convert all columns to the proper datatype required for this analysis**
+ 
+```{r datatype}
+
+AT$`Month of Year` <- as.factor(AT$`Month of Year`)
+
+#DF <- mutate_at(AT, vars(char1, char2), as.integer)
+
+DF <- mutate_if(AT, is.character, as.factor)
+
+
+
+str(DF)
+```
+
+
+**Factors Recoding**
+
+```{r datatype}
+
+DF<- DF%>%
+  mutate(Ethnicity = recode(`Ethnic origin`,
+                             "Any other Asian background" = 1,
+                             "Any other Black/African/Caribbean/Black British" = 2,
+                            "Any other mixed/multiple ethnic background" = 3,
+                            "Arab" = 4,
+                            "Asian/Asian British - Bangledeshi" = 5,
+                            "Asian/Asian British - Chinese" = 6,
+                            "Asian/Asian British - Indian" = 7,
+                            "Asian/Asian British - Pakistani" = 8,
+                            "Black/Black British - African" = 9,
+                            "Black/Black British - Caribbean" = 10,
+                            "Mixed - White and Asian" = 11,
+                            "Mixed - White and Black African" = 12,
+                            "Mixed - White and Black Caribbean" = 13,
+                            "Nil Return (Not in use)" = 14,
+                            "Prefer not to say" = 15,
+                            "White & Other (Not in use)" = 16,
+                            "White - Gypsy or Irish Traveller" = 17,
+                            "White - Irish" = 18,
+                            "White - Scottish  (Not in use)"= 19,
+                            "White - Welsh  (Not in use)" = 20,
+                           "White - any other white background" = 21,
+                           "White-English/Welsh/Scottish/NorthernIrish/British" =22))
+
+
+
+
+DF<- DF%>%
+  mutate(Eth_Group = recode(`Ethnic Group`,
+                             "Asian" = 1,
+                             "Black" = 2,
+                            "Mixed race" = 3,
+                            "White" = 4,
+                            "Not disclosed" = 5))
+
+
+
+
+DF<- DF%>%
+  mutate(Mar_Status = recode(`Marital Status`,
+                             "Div." = 1,
+                             "Marr." = 2,
+                            "NM" = 3,
+                            "Sep." = 4,
+                            "Single" = 5,
+                            "Wid." = 6,
+                            "Unknwn" = 7))
+
+
+
+
+DF<- DF%>%
+  mutate(Cont_Type = recode(`Contract type`,
+                             "Apprentice" = 1,
+                             "CB - 4D" = 2,
+                            "CB - Cap Prog & AMR" = 3,
+                            "CB - Connections" = 4,
+                            "CB - Metering" = 5,
+                            "CB - Operations" = 6,
+                            "CB - Ops Customer" = 7,
+                            "CB - Support Service" = 8,
+                            "CB - UUES" = 9,
+                            "CB - UUOL" = 10,
+                            "Collectively Bargain" = 11,
+                            "Graduate" = 12,
+                            "Local Government" = 13,
+                            "Personal Contract" = 14,
+                            "Trainee" = 15))
+
+
+DF<- DF%>%
+  mutate(Emp_Grp = recode(`Employee Group`,
+                             "Permanent Employee" = 1,
+                             "Temporary Employee" = 2))
+
+
+
+
+DF<- DF%>%
+  mutate(FuT_PaT = recode(`FT_PT`,
+                             "Full Time" = 1,
+                             "Part Time" = 2))
+
+
+
+
+
+DF<- DF%>%
+  mutate(Reason_For_Act_Starter = recode(`Reason For Action Starter`,
+                             "External hire" = 1,
+                             "Agency to Employee" = 2,
+                            "TUPE Transfer" = 3))
+
+
+
+view(DF)
+
+```
+
+
+
+***CORRELATION ACROSS FACTORS***
+
+```{r COR}
+DF_Corr<-DF[,c("Atrition","Leaving Month","Gen key","Age","LOS",
+               "Wk.hrs.","Ethnicity","Emp_Grp","Cont_Type","Reason_For_Act_Starter", "Eth_Group","Mar_Status","FuT_PaT")]
+
+
+DF_Corr<- mutate_at(DF_Corr, vars("Leaving Month"), as.integer)
+
+
+cat("There is:", sum(is.na(DF_Corr)), "NA and The NA is located in row:", which(is.na(DF_Corr$Cont_Type)), "\n")
+
+DF_Corrr<-na.omit(DF_Corr)
+
+```
+
+
+
+```{r Correlation}
+
+#str(DF_Corr)
+
+corr<-round(cor(DF_Corrr), digits = 2)
+
+CrossTab<- c( "Atrition","Leaving.Month","Gen.key","Age","LOS",
+              "Wk.hrs.","Ethnicity","Emp_Grp","Cont_Type","Reason_For_Act_Starter","Eth_Group","Mar_Status","FuT_PaT")
+
+Cor_Table<-data.frame(CrossTab,corr)
+
+flextable(Cor_Table)
+```
+
+
+```{r CorrePlot}
+
+corrplot(corr, method = "shade", addCoef.col="black", type="upper", number.cex=0.75)
+
+```
+
+
+
+ **Logistic Regression MOdel (DF_Reg)**
+
+```{r Reg_Dat}
+
+DF_Reg<-DF[,c("Atrition","Month of Year","Age","Gender","LOS","Reason for Action","Ethnic origin", "PS group","Contract type","Employee Group","Cost Center","Position","OU L1","Age Group","Reason For Action Starter","FT_PT","Ethnic Group","Marital Status", "Ann Salary Group")]
+
+sum(is.na(DF_Reg))
+
+DF_Reg<-na.omit(DF_Reg)
+
+view(DF_Reg)
+```
+
+
+**filter the data to remove retirement under reasons for action **
+
+```{r Reg_Dat}
+
+#DF_Reg <- DF_Reg %>% filter(!grepl("Retirement", `Reason for Action`))
+
+testdata <- testdata %>% filter(!grepl("Local Government", `Contract type`))
+
+
+
+```
+
+
+**Split the data into training and testing sets**
+
+```{r Split Data # Split the data into training and testing sets (80% training and 20% testing)}
+
+set.seed(469820)  
+
+train_index <- createDataPartition(DF_Reg$Atrition, p = 0.8, list = FALSE)
+
+train_DF_Reg <- DF_Reg[train_index, ]
+
+test_DF_Reg<- DF_Reg[-train_index, ]
+
+```
+ 
+
+**linear regression**
+
+```{r Regression}
+
+Lm_Reason<-lm(Atrition ~ `Reason for Action`,data =train_DF_Reg)
+
+summary(Lm_Reason)
+```
+
+
+```{r Regression}
+
+Lm_Reason<-lm(Atrition ~ `Reason For Action Starter`,data =train_DF_Reg)
+
+summary(Lm_Reason)
+```
+
+
+
+```{r Regression}
+
+Lm_Reason<-lm(Atrition ~ `Age Group`,data =DF_Reg)
+
+summary(Lm_Reason)
+
+
+```
+
+
+
+```{r Regression}
+
+Lm_Month<-lm(Atrition ~ `Month of Year`,data =train_DF_Reg)
+
+summary(Lm_Month)
+```
+
+
+```{r Regression}
+
+Lm_Los<-lm(Atrition ~ `LOS`,data =train_DF_Reg)
+
+summary(Lm_Los)
+```
+
+
+```{r Regression}
+
+Lm_CType<-lm(Atrition ~ `Contract type`,data =train_DF_Reg)
+
+summary(Lm_CType)
+
+
+```
+
+
+```{r Regression}
+
+Lm_Age<-lm(Atrition ~ `Age`,data =train_DF_Reg)
+
+summary(Lm_Age)
+```
+
+
+**Model prediction**
+
+```{r M Prediction}
+
+P_Lm_Age<-predict(Lm_Age,newdata = test_DF_Reg)
+
+```
+
+
+
+```{r ROC}
+
+roc_curve <-roc(test_DF_Reg$Atrition, as.numeric(P_Lm_Age))
+
+plot(roc_curve, main = "ROC Curve Age", col = "blue", lwd = 4,lagacy.axes = TRUE)
+
+text(0.5, 0.5, paste("AUC =", round(auc(roc_curve), 2)))
+
+```
+
+
+
+**Confusion Matrix**
+
+```{r Confusion Matrix}
+
+PP_Lm_Age=ifelse(test=P_Lm_Age>0.5,yes = 1,no=0)
+
+PP_Lm_Age<- as.factor(PP_Lm_Age)
+
+test_DF_Reg$Atrition <- as.factor(test_DF_Reg$Atrition)
+
+Conf_matrix <- confusionMatrix(PP_Lm_Age, test_DF_Reg$Atrition)
+
+Conf_matrix
+```
+
+**Calculate accuracy**
+
+```{r Confusion Matrix}
+accuracy <- sum(PP_Lm_Age == test_DF_Reg$Atrition) / nrow(test_DF_Reg)
+
+cat("Accuracy:", accuracy, "\n")
+
+```
+
+
+
+```{r Regression}
+
+BEN<-lm(Atrition ~ `Gender`, data = DF_Reg)
+
+summary(BEN)
+```
+
+
+
+**Multiple linear regression**
+
+```{r Regression}
+
+MLM<-lm(Atrition ~ `Month of Year`+ `Age`+`Gender`+`LOS`+
+           `OU L1`+`Reason for Action`+`PS group`+`Contract type`+
+           `Employee Group`+`Cost Center`+`Position`+`Age Group`+
+           `Reason For Action Starter`+`Ethnic Group`+`Marital Status`+`FT_PT`+
+           `Ann Salary Group`, data = DF_Reg)
+
+summary(MLM)
+```
+
+
+**Factor Seletion**
+
+```{r}
+stepAIC(MLM, direction = "both")
+```
+
+
+
+**Model prediction and Prediction Accuracy Check**
+```{r Prediction}
+
+P_MLM<-predict(MLM,newdata = testdata)
+
+```
+```{r ROC}
+
+roc_curv <-roc(testdata$Atrition, as.numeric(P_MLM))
+
+plot(roc_curv, main = "ROC Curv", col = "Green", lwd = 4,lagacy.axes = TRUE)
+
+text(0.5, 0.5, paste("AUC =", round(auc(roc_curv), 2)))
+
+```
+**Confusion Matrix**
+```{r Confusion Matrix}
+
+P_MLM=ifelse(test=P_MLM>0.5,yes = 1,no=0)
+
+P_MLM<- as.factor(P_MLM)
+
+test_DF_Reg$Atrition <- as.factor(test_DF_Reg$Atrition)
+
+C_matrix <- confusionMatrix(P_MLM, test_DF_Reg$Atrition)
+
+C_matrix
+```
+
+
+
+
+*** FINAL TEST***
+
+
+**Multiple linear regression: Selected Factors**
+
+```{r Regression}
+
+MLm<-lm(formula = Atrition ~ Age + Gender + LOS + `OU L1` + 
+    `Contract type` + `Age Group` + `Reason For Action Starter` + 
+    `Marital Status` + FT_PT + `Ann Salary Group`, data = DF_Reg)
+
+#summary(MLm)
+
+```
+
+
+**Model prediction and Prediction Accuracy Check**
+
+```{r Prediction}
+
+P_MLm<-predict(MLm,newdata = testdata)
+
+```
+
+
+```{r ROC}
+
+roc_curv <-roc(testdata$Atrition, as.numeric(P_MLm))
+
+plot(roc_curv, main = "ROC Curv", col = "Green", lwd = 4,lagacy.axes = TRUE)
+
+text(0.5, 0.5, paste("AUC =", round(auc(roc_curv), 2)))
+
+```
+
+
+**Confusion Matrix**
+
+```{r Confusion Matrix}
+
+P_MLm=ifelse(test=P_MLm>0.5,yes = 1,no=0)
+
+P_MLm<- as.factor(P_MLm)
+
+testdata$Atrition <- as.factor(testdata$Atrition)
+
+C_matrix <- confusionMatrix(P_MLm, testdata$Atrition)
+
+C_matrix
+```
+
+
+
+
+***PREDICTION**
+
+
+```{r Regression}
+
+##General prediction
+
+
+Atrition<-predict(MLm,newdata = testdata)
+
+M_dataframe <- as.data.frame(Atrition)
+
+prediction <- cbind(testdata, M_dataframe)
+
+
+
+#Individual Prediction
+
+
+#MLm<-glm(formula = Atrition ~ Age + Gender + LOS + `OU L1` + 
+    #`Contract type` + `Age Group` + `Reason For Action Starter` + 
+   # `Marital Status` + FT_PT + `Ann Salary Group`, data = DF_Reg)
+
+
+#*********  Age
+
+Age<-lm(Atrition ~ `Age Group`,data =DF_Reg)
+
+Age_m<-predict(Age,newdata = testdata)
+
+Age_m=ifelse(test=Age_m>0.6,yes = 1,no=0)
+
+Age_m <- as.data.frame(Age_m)
+
+prediction<- cbind(prediction, Age_m)
+
+
+
+#********* Gender
+  
+Gender<-lm(Atrition ~ `Gender`,data =DF_Reg)
+
+Gender_m<-predict(Gender,newdata = testdata)
+
+Gender_m=ifelse(test=Gender_m>0.6,yes = 1,no=0)
+
+Gender_m <- as.data.frame(Gender_m)
+
+prediction<- cbind(prediction, Gender_m)
+
+
+
+#******* LOS
+
+LOS<-lm(Atrition ~ `LOS`,data =DF_Reg)
+
+
+LOS_m<-predict(LOS,newdata = testdata)
+
+LOS_m=ifelse(test=LOS_m>0.6,yes = 1,no=0)
+
+LOS_m <- as.data.frame(LOS_m)
+
+prediction<- cbind(prediction, LOS_m)
+
+
+
+#**OU L1**
+
+Area<-lm(Atrition ~ `OU L1`,data =DF_Reg)
+
+Area_m<-predict(Area, newdata = testdata)
+
+Area_m=ifelse(test=Area_m>0.6,yes = 1,no=0)
+
+Area_m <- as.data.frame(Area_m)
+
+prediction<- cbind(prediction, Area_m)
+
+
+#****** Ethnic_Group
+
+Ethnic_Group <- lm(Atrition ~ `Ethnic Group`,data =DF_Reg)
+
+EthnicGroup_m<-predict(Ethnic_Group,newdata = testdata)
+
+EthnicGroup_m=ifelse(test=EthnicGroup_m>0.6,yes = 1,no=0)
+
+EthnicGroup_m <- as.data.frame(EthnicGroup_m)
+
+prediction<- cbind(prediction, EthnicGroup_m)
+
+
+
+
+#******** Ann_Salary_Group
+
+Ann_Salary_Group <- lm(Atrition ~ `Ann Salary Group`,data =DF_Reg)
+
+
+AnnSalaryGroup_m<-predict(Ann_Salary_Group,newdata = testdata)
+
+AnnSalaryGroup_m = ifelse(test= AnnSalaryGroup_m > 0.6,yes = 1,no=0)
+
+AnnSalaryGroup_m <- as.data.frame(AnnSalaryGroup_m)
+
+prediction<- cbind(prediction, AnnSalaryGroup_m)
+
+
+
+
+#********* Marital_Status
+
+Marital_Status<-lm(Atrition ~ `Marital Status`,data =DF_Reg)
+
+
+MaritalStatus_m<-predict(Marital_Status,newdata = testdata)
+
+MaritalStatus_m=ifelse(test=MaritalStatus_m > 0.6,yes = 1,no=0)
+
+MaritalStatus_m <- as.data.frame(MaritalStatus_m)
+
+prediction<- cbind(prediction, MaritalStatus_m)
+
+
+
+#******Employee Group**
+
+FT_PT<-lm(Atrition ~ `FT_PT`,data =DF_Reg)
+
+FT_PT_m<-predict(FT_PT, newdata = testdata)
+
+FT_PT_m=ifelse(test=FT_PT_m>0.6,yes = 1,no=0)
+
+FT_PT_m <- as.data.frame(FT_PT_m)
+
+prediction<- cbind(prediction, FT_PT_m)
+
+
+
+#**PS group**
+PSgroup<-lm(Atrition ~ `PS group`,data =DF_Reg)
+
+PSgroup_m<-predict(PSgroup,newdata = testdata)
+
+PSgroup_m=ifelse(test=PSgroup_m>0.6,yes = 1,no=0)
+
+PSgroup_m <- as.data.frame(PSgroup_m)
+
+prediction<- cbind(prediction, PSgroup_m)
+
+
+
+#**Reason For Action Starter*
+
+ActionType<-lm(Atrition ~ `Reason For Action Starter`,data =DF_Reg)
+
+ActionType_m<-predict(ActionType, newdata = testdata)
+
+ActionType_m=ifelse(test=ActionType_m>0.6,yes = 1,no=0)
+
+ActionType_m <- as.data.frame(ActionType_m)
+
+prediction<- cbind(prediction, ActionType_m)
+
+
+#**Contract type**
+
+Contype<-lm(Atrition ~ `Contract type`,data =DF_Reg)
+
+Contype_m<-predict(Contype, newdata = testdata)
+
+Contype_m=ifelse(test=Contype_m>0.6,yes = 1,no=0)
+
+Contype_m <- as.data.frame(Contype_m)
+
+prediction<- cbind(prediction, Contype_m)
+
+
+#round up predicted attrition values to the nearest multiple of 2
+
+prediction<- prediction %>%mutate(Atrition = abs(ceiling(abs(Atrition) * 100) / 100))
+
+#view
+
+View(prediction)
+
+
+
+write.xlsx(prediction, "Y:/15. Alteryx/Workflows/A.sam/R/Atrition/prediction_October.xlsx")
+
+```
+
+
+`
+
+if (nrow(M_dataframe) < nrow(testdata)) {
+    extra_rows <- nrow(testdata) - nrow(M_dataframe)
+    M_dataframe <- rbind(M_dataframe, matrix(NA, nrow = extra_rows, ncol = ncol(M_dataframe)))
+}
+
+
+
